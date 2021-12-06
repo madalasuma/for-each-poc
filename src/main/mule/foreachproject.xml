@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2c9fbedd-9945-4206-b9f8-29b9249769d5" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="foreachprojectFlow" doc:id="99b844b2-9e5f-40fb-94f4-072ae9354ae4" >
+		<http:listener doc:name="Listener" doc:id="1b2ea997-483c-4cfb-8703-76e6bdb36b9c" config-ref="HTTP_Listener_config" path="/foreach"/>
+		<set-payload value='#[[1,2,"a",4,5,6]]' doc:name='[1,2,"a",4,5,6]' doc:id="073f215a-7bcd-4657-b134-a1b0b99af5dd"/>
+		<set-variable value="#[[]]" doc:name="SuccessvariableRecord" doc:id="23c8ee62-09a1-4335-9054-d4b4672ad78c" variableName="SuccessvariableRecord"/>
+		<set-variable value="#[[]]" doc:name="failures" doc:id="2ceda940-8675-46a7-b955-42e0e8dfb1ed" variableName="failures" />
+		<foreach doc:name="For Each" doc:id="d0fc9366-3071-4078-82e0-6cbfde5bd726" >
+			<try doc:name="Try" doc:id="bb75d4a0-4b3e-4aa9-ae4c-9bcee542c85f" >
+				<set-payload value="#[payload*10]" doc:name="Set Payload" doc:id="279cfaac-89b8-4672-8fe9-4a5633498930" />
+				<set-variable value="#[output application/json --- vars.SuccessvariableRecord + payload]" doc:name="Set Variable" doc:id="158fc1d2-798d-49f2-b56f-56a2a842daff" variableName="SuccessvariableRecord"/>
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f758043c-13e4-4dfd-8344-2ccb06fa761e" >
+						<logger level="INFO" doc:name="Logger" doc:id="65245031-0564-4fad-81b2-f5e51223f0ee" />
+						<set-variable value="#[output application/json ---vars.failures + payload]" doc:name="Set Variable" doc:id="1b68c9eb-0574-48fb-aae7-1e388d061714" variableName="failures"/>
+					</on-error-continue>
+				</error-handler>
+			</try>
+		</foreach>
+		<ee:transform doc:name="Transform Message" doc:id="72d82eec-4c60-40ec-942a-16499663d22f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	actualpayload:payload,
+	successmodifiedpayload:vars.SuccessvariableRecord,
+	failurepayload:vars.failures
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
